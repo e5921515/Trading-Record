@@ -235,21 +235,24 @@
 
     <!-- Firebase Implementation -->
     <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+<script type="module">
+    // 1. 使用完整網址導入 Firebase 模組
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
     import { getFirestore, collection, doc, addDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAcshqWtMGXrx2mq_b10LEj7XV8cgVLKCU",
-  authDomain: "trading-3ffb2.firebaseapp.com",
-  projectId: "trading-3ffb2",
-  storageBucket: "trading-3ffb2.firebasestorage.app",
-  messagingSenderId: "1008165466686",
-  appId: "1:1008165466686:web:a9836009a9ae0394ff176f",
-  measurementId: "G-R17HTW5BJ2"
-};
+    // 2. 你的 Firebase 配置 (請確保填入你自己的資訊)
+    const fbConfig = {
+        apiKey: "AIzaSyAcshqWtMGXrx2mq_b10LEj7XV8cgVLKCU",
+        authDomain: "trading-3ffb2.firebaseapp.com",
+        projectId: "trading-3ffb2",
+        storageBucket: "trading-3ffb2.firebasestorage.app",
+        messagingSenderId: "1008165466686",
+        appId: "1:1008165466686:web:a9836009a9ae0394ff176f"
+        measurementId: "G-R17HTW5BJ2"
+    };
 
-const appId = 'trading-pro-v8';
+    const appId = 'trading-pro-v8';
 
     // 3. 系統狀態與邏輯
     const state = {
