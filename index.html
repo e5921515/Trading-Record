@@ -6,6 +6,8 @@
     <title>Trading Record Pro - Sync Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 引入 Chart.js 數據標籤插件 -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.0/lucide.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+TC:wght@400;700&family=JetBrains+Mono:wght@500&display=swap');
@@ -41,6 +43,7 @@
     </header>
 
     <main class="px-5 space-y-6 max-w-lg mx-auto">
+        <!-- 輸入表單 -->
         <section class="glass-card rounded-[2.5rem] p-7 animate-fade">
             <div class="flex gap-2 p-1 bg-black/40 rounded-2xl border border-white/5 mb-6">
                 <button type="button" id="btn-long" onclick="window.updateType('long')" class="flex-1 py-3.5 rounded-xl text-xs font-black transition-all">LONG 做多</button>
@@ -70,6 +73,7 @@
             </form>
         </section>
 
+        <!-- 統計數據 -->
         <section class="grid grid-cols-2 gap-3 animate-fade" style="animation-delay: 0.1s">
             <div class="glass-card rounded-3xl p-5 col-span-2 border-l-4 border-l-cyan-500">
                 <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">總淨損益 Net Profit</p>
@@ -77,16 +81,22 @@
             </div>
             <div class="glass-card rounded-3xl p-5"><p class="text-[10px] text-slate-500 font-bold uppercase mb-1">盈利次數 Wins</p><p id="stat-wins" class="text-2xl font-black text-green-400 mono">0</p></div>
             <div class="glass-card rounded-3xl p-5"><p class="text-[10px] text-slate-500 font-bold uppercase mb-1">虧損次數 Losses</p><p id="stat-losses" class="text-2xl font-black text-rose-500 mono">0</p></div>
+            
+            <div class="glass-card rounded-3xl p-5 border-b-2 border-green-900/30"><p class="text-[10px] text-slate-500 font-bold uppercase mb-1">最大連勝 Max Win Streak</p><p id="stat-max-wins" class="text-xl font-black text-green-400 mono">0</p></div>
+            <div class="glass-card rounded-3xl p-5 border-b-2 border-rose-900/30"><p class="text-[10px] text-slate-500 font-bold uppercase mb-1">最大連敗 Max Loss Streak</p><p id="stat-max-losses" class="text-xl font-black text-rose-500 mono">0</p></div>
+
             <div class="glass-card rounded-3xl p-5"><p class="text-[10px] text-slate-500 font-bold uppercase mb-1">平均風報比 Avg RR</p><p id="stat-rr" class="text-xl font-bold text-cyan-400 mono">0.00</p></div>
             <div class="glass-card rounded-3xl p-5"><p class="text-[10px] text-slate-500 font-bold uppercase mb-1">勝率 Win Rate</p><p id="stat-wr" class="text-xl font-bold text-white mono">0%</p></div>
             <div class="glass-card rounded-3xl p-5 col-span-2 text-center"><p class="text-[10px] text-slate-500 font-bold uppercase mb-1">最大回撤 Max Drawdown</p><p id="stat-dd" class="text-xl font-bold text-orange-400 mono">0.0%</p></div>
         </section>
 
+        <!-- 損益曲線 -->
         <section class="glass-card rounded-[2.5rem] p-7 animate-fade" style="animation-delay: 0.2s">
             <h2 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-6">累積損益曲線 Equity Curve</h2>
-            <div class="h-64 w-full"><canvas id="equityChart"></canvas></div>
+            <div class="h-80 w-full"><canvas id="equityChart"></canvas></div>
         </section>
 
+        <!-- 歷史紀錄 -->
         <section class="space-y-4 animate-fade" style="animation-delay: 0.3s">
             <h3 class="text-center text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">Transaction History</h3>
             <div id="history-list" class="space-y-3"></div>
@@ -98,6 +108,7 @@
         </section>
     </main>
 
+    <!-- 數字輸入盤 -->
     <div id="calcBox" class="fixed inset-0 bg-black/95 z-50 hidden flex-col justify-end">
         <div class="bg-[#0a0c12] rounded-t-[3rem] p-8 pb-16 border-t border-white/5 shadow-2xl">
             <div class="flex flex-col mb-8 px-2 border-b border-white/5 pb-6">
@@ -117,7 +128,10 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, addDoc, updateDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // 註冊 DataLabels 插件
+        Chart.register(ChartDataLabels);
 
         const fbConfig = {
             apiKey: "AIzaSyAcshqWtMGXrx2mq_b10LEj7XV8cgVLKCU",
@@ -130,7 +144,7 @@
 
         const state = { trades: [], isOffline: true, user: null, editingId: null, activeInput: null, type: 'long', page: 1, limit: 10 };
         const appId = 'trading-pro-v8';
-        const SYNC_PATH = 'shared_trades_v1'; // 固定路徑達成同步
+        const SYNC_COLLECTION = 'shared_trades_v1';
         let db, auth, chart = null;
 
         async function init() {
@@ -145,47 +159,141 @@
                     await signInAnonymously(auth);
                 } catch (e) { setOffline(); }
             } else { setOffline(); }
+            
             setupUI();
-            if (state.isOffline) { render(); }
-            else {
+            
+            if (state.isOffline) { 
+                render(); 
+            } else {
                 onAuthStateChanged(auth, (u) => {
                     state.user = u;
                     if (u) {
-                        const q = collection(db, 'artifacts', appId, SYNC_PATH);
-                        onSnapshot(q, (snap) => {
+                        const qSnap = collection(db, 'artifacts', appId, 'public', 'data', SYNC_COLLECTION);
+                        onSnapshot(qSnap, (snap) => {
                             state.trades = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                             render();
-                        });
+                        }, (err) => console.error("Snapshot error:", err));
                     }
                 });
             }
         }
 
-        function setOffline() { state.isOffline = true; document.getElementById('status-label').innerText = "Offline Mode"; document.getElementById('status-dot').className = "w-1.5 h-1.5 rounded-full bg-slate-600"; }
+        function setOffline() { 
+            state.isOffline = true; 
+            document.getElementById('status-label').innerText = "Offline Mode"; 
+            document.getElementById('status-dot').className = "w-1.5 h-1.5 rounded-full bg-slate-600"; 
+        }
 
         function compute() {
             const chron = [...state.trades].sort((a, b) => new Date(a.entryTime) - new Date(b.entryTime));
             let net = 0, wins = 0, losses = 0, eq = [0], maxEq = 0, maxDD = 0, totalRR = 0;
+            
+            let currentWinStreak = 0, currentLossStreak = 0;
+            let maxWinStreak = 0, maxLossStreak = 0;
+
             chron.forEach(t => {
                 const ent = parseFloat(t.entryPrice) || 0, ext = parseFloat(t.exitPrice) || 0, sl = parseFloat(t.stopLoss) || 0;
                 const pl = t.type === 'long' ? (ext - ent) : (ent - ext);
                 const risk = Math.abs(ent - sl) || 0.0001;
+                
                 net += pl;
-                if (pl > 0) { wins++; totalRR += (pl / risk); } else if (pl < 0) { losses++; }
+                
+                if (pl > 0) {
+                    wins++;
+                    totalRR += (pl / risk);
+                    currentWinStreak++;
+                    currentLossStreak = 0;
+                } else if (pl < 0) {
+                    losses++;
+                    currentLossStreak++;
+                    currentWinStreak = 0;
+                } else {
+                    currentWinStreak = 0;
+                    currentLossStreak = 0;
+                }
+
+                maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
+                maxLossStreak = Math.max(maxLossStreak, currentLossStreak);
+
                 const cEq = eq[eq.length - 1] + pl;
-                eq.push(cEq); maxEq = Math.max(maxEq, cEq);
+                eq.push(cEq); 
+                maxEq = Math.max(maxEq, cEq);
                 const dd = maxEq > 0 ? ((maxEq - cEq) / maxEq) * 100 : 0;
                 maxDD = Math.max(maxDD, dd);
             });
-            return { net, wins, losses, maxDD, wr: (state.trades.length > 0 ? (wins / state.trades.length * 100) : 0).toFixed(1), rr: (state.trades.length > 0 ? (totalRR / state.trades.length) : 0).toFixed(2), curve: eq };
+
+            return { 
+                net, wins, losses, maxDD, maxWinStreak, maxLossStreak,
+                wr: (state.trades.length > 0 ? (wins / state.trades.length * 100) : 0).toFixed(1), 
+                rr: (state.trades.length > 0 ? (totalRR / state.trades.length) : 0).toFixed(2), 
+                curve: eq 
+            };
         }
 
         function draw(data) {
             const ctx = document.getElementById('equityChart').getContext('2d');
             if (chart) chart.destroy();
             chart = new Chart(ctx, {
-                type: 'line', data: { labels: data.map((_, i) => i), datasets: [{ data: data, borderColor: '#22d3ee', borderWidth: 2.5, pointRadius: 2, tension: 0.35, fill: true, backgroundColor: 'rgba(34, 211, 238, 0.05)' }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#475569', font: { size: 10 } } } } }
+                type: 'line', 
+                data: { 
+                    labels: data.map((_, i) => i === 0 ? 'Start' : `#${i}`), 
+                    datasets: [{ 
+                        data: data, 
+                        borderColor: '#22d3ee', 
+                        borderWidth: 3, 
+                        pointRadius: 6, 
+                        pointBackgroundColor: '#22d3ee',
+                        pointHoverRadius: 10,
+                        pointHoverBackgroundColor: '#fff',
+                        tension: 0.3, 
+                        fill: true, 
+                        backgroundColor: 'rgba(34, 211, 238, 0.08)' 
+                    }] 
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    layout: { padding: { top: 40, right: 20, left: 10, bottom: 10 } },
+                    interaction: {
+                        mode: 'nearest',
+                        intersect: true
+                    },
+                    plugins: { 
+                        legend: { display: false },
+                        // 互動式 DataLabels 設定
+                        datalabels: {
+                            align: 'top',
+                            offset: 12,
+                            backgroundColor: 'rgba(34, 211, 238, 1)', // 亮青色背景
+                            borderRadius: 6,
+                            color: '#000', // 深色文字
+                            padding: { top: 4, bottom: 4, left: 8, right: 8 },
+                            font: { size: 12, weight: '900', family: 'JetBrains Mono' },
+                            formatter: (value) => value.toFixed(2),
+                            // 關鍵修改：只有在該節點處於 active (hovered or clicked) 狀態時才顯示
+                            display: (context) => context.active,
+                        },
+                        tooltip: {
+                            enabled: true,
+                            backgroundColor: '#0f172a',
+                            titleFont: { size: 12 },
+                            bodyFont: { size: 14, family: 'JetBrains Mono' },
+                            callbacks: {
+                                label: (context) => ` Equity: ${context.parsed.y.toFixed(2)}`
+                            }
+                        }
+                    }, 
+                    scales: { 
+                        x: { 
+                            grid: { display: false },
+                            ticks: { color: '#475569', font: { size: 9 } } 
+                        }, 
+                        y: { 
+                            grid: { color: 'rgba(255,255,255,0.03)' }, 
+                            ticks: { color: '#475569', font: { size: 10 } } 
+                        } 
+                    } 
+                }
             });
         }
 
@@ -193,53 +301,142 @@
             const s = compute();
             document.getElementById('stat-net').innerText = s.net.toFixed(2);
             document.getElementById('stat-net').className = `text-3xl font-black mono ${s.net >= 0 ? 'text-green-400' : 'text-rose-500'}`;
-            document.getElementById('stat-wins').innerText = s.wins; document.getElementById('stat-losses').innerText = s.losses;
-            document.getElementById('stat-wr').innerText = s.wr + '%'; document.getElementById('stat-rr').innerText = s.rr;
+            document.getElementById('stat-wins').innerText = s.wins; 
+            document.getElementById('stat-losses').innerText = s.losses;
+            document.getElementById('stat-max-wins').innerText = s.maxWinStreak;
+            document.getElementById('stat-max-losses').innerText = s.maxLossStreak;
+            document.getElementById('stat-wr').innerText = s.wr + '%'; 
+            document.getElementById('stat-rr').innerText = s.rr;
             document.getElementById('stat-dd').innerText = s.maxDD.toFixed(1) + '%';
+            
             draw(s.curve);
-            const list = document.getElementById('history-list'); list.innerHTML = '';
+            
+            const list = document.getElementById('history-list'); 
+            list.innerHTML = '';
             const sorted = [...state.trades].sort((a, b) => new Date(b.entryTime) - new Date(a.entryTime));
             const totalP = Math.ceil(sorted.length / state.limit) || 1;
+            
             sorted.slice((state.page - 1) * state.limit, state.page * state.limit).forEach(t => {
                 const pl = t.type === 'long' ? (t.exitPrice - t.entryPrice) : (t.entryPrice - t.exitPrice);
                 const risk = Math.abs(t.entryPrice - t.stopLoss) || 0.0001;
                 const card = document.createElement('div');
                 card.className = 'glass-card rounded-2xl p-4 flex justify-between items-center active:scale-[0.98] transition-all cursor-pointer';
                 card.onclick = () => window.edit(t.id);
-                card.innerHTML = `<div class="flex items-center gap-4"><div class="w-1.5 h-10 rounded-full ${t.type === 'long' ? 'bg-green-500' : 'bg-rose-500'}"></div><div><div class="flex items-center gap-2"><span class="text-[10px] font-black ${t.type === 'long' ? 'text-green-500' : 'text-rose-500'}">${t.type.toUpperCase()}</span><span class="text-slate-600 text-[10px] font-bold">${new Date(t.entryTime).toLocaleDateString()}</span><span class="text-[9px] bg-white/5 px-2 py-0.5 rounded text-cyan-400 mono">RR ${(pl/risk).toFixed(2)}</span></div><div class="text-xs font-bold text-slate-300 mono">${t.entryPrice} → ${t.exitPrice}</div></div></div><div class="text-right"><div class="font-black mono ${pl >= 0 ? 'text-green-400' : 'text-rose-500'}">${pl >= 0 ? '+' : ''}${pl.toFixed(2)}</div></div>`;
+                card.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <div class="w-1.5 h-10 rounded-full ${t.type === 'long' ? 'bg-green-500' : 'bg-rose-500'}"></div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-black ${t.type === 'long' ? 'text-green-500' : 'text-rose-500'}">${t.type.toUpperCase()}</span>
+                                <span class="text-slate-600 text-[10px] font-bold">${new Date(t.entryTime).toLocaleDateString()}</span>
+                                <span class="text-[9px] bg-white/5 px-2 py-0.5 rounded text-cyan-400 mono">RR ${(pl/risk).toFixed(2)}</span>
+                            </div>
+                            <div class="text-xs font-bold text-slate-300 mono">${t.entryPrice} → ${t.exitPrice}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-black mono ${pl >= 0 ? 'text-green-400' : 'text-rose-500'}">${pl >= 0 ? '+' : ''}${pl.toFixed(2)}</div>
+                    </div>`;
                 list.appendChild(card);
             });
+            
             document.getElementById('pageTxt').innerText = `Page ${state.page} / ${totalP}`;
-            document.getElementById('btnPrev').disabled = state.page <= 1; document.getElementById('btnNext').disabled = state.page >= totalP;
+            document.getElementById('btnPrev').disabled = state.page <= 1; 
+            document.getElementById('btnNext').disabled = state.page >= totalP;
             document.getElementById('pagination').classList.toggle('hidden', state.trades.length === 0);
             if (state.trades.length === 0) list.innerHTML = '<div class="text-center py-10 text-slate-700 text-[11px] font-black uppercase">No records found</div>';
         }
 
-        window.updateType = (t) => { state.type = t; document.getElementById('tradeType').value = t; const bl = document.getElementById('btn-long'), bs = document.getElementById('btn-short'); bl.className = `flex-1 py-3.5 rounded-xl text-xs font-black transition-all ${t === 'long' ? 'btn-toggle-long' : 'text-slate-600'}`; bs.className = `flex-1 py-3.5 rounded-xl text-xs font-black transition-all ${t === 'short' ? 'btn-toggle-short' : 'text-slate-600'}`; };
-        window.edit = (id) => { const t = state.trades.find(x => x.id === id); if (!t) return; state.editingId = id; document.getElementById('entryPrice').value = t.entryPrice; document.getElementById('stopLoss').value = t.stopLoss || ""; document.getElementById('exitPrice').value = t.exitPrice; document.getElementById('entryTime').value = t.entryTime; window.updateType(t.type); document.getElementById('submitBtn').innerText = 'Update Record 更新紀錄'; window.scrollTo({ top: 0, behavior: 'smooth' }); };
+        window.updateType = (t) => { 
+            state.type = t; 
+            document.getElementById('tradeType').value = t; 
+            const bl = document.getElementById('btn-long'), bs = document.getElementById('btn-short'); 
+            bl.className = `flex-1 py-3.5 rounded-xl text-xs font-black transition-all ${t === 'long' ? 'btn-toggle-long' : 'text-slate-600'}`; 
+            bs.className = `flex-1 py-3.5 rounded-xl text-xs font-black transition-all ${t === 'short' ? 'btn-toggle-short' : 'text-slate-600'}`; 
+        };
+
+        window.edit = (id) => { 
+            const t = state.trades.find(x => x.id === id); 
+            if (!t) return; 
+            state.editingId = id; 
+            document.getElementById('entryPrice').value = t.entryPrice; 
+            document.getElementById('stopLoss').value = t.stopLoss || ""; 
+            document.getElementById('exitPrice').value = t.exitPrice; 
+            document.getElementById('entryTime').value = t.entryTime; 
+            window.updateType(t.type); 
+            document.getElementById('submitBtn').innerText = 'Update Record 更新紀錄'; 
+            window.scrollTo({ top: 0, behavior: 'smooth' }); 
+        };
+
         window.movePage = (dir) => { state.page += dir; render(); };
 
         function setupUI() {
-            window.updateType('long'); document.getElementById('entryTime').value = new Date().toISOString().slice(0, 16);
+            window.updateType('long'); 
+            document.getElementById('entryTime').value = new Date().toISOString().slice(0, 16);
+            
             document.getElementById('tradeForm').onsubmit = async (e) => {
                 e.preventDefault();
-                const d = { entryPrice: document.getElementById('entryPrice').value, stopLoss: document.getElementById('stopLoss').value, exitPrice: document.getElementById('exitPrice').value, entryTime: document.getElementById('entryTime').value, type: state.type, timestamp: Date.now() };
-                if (!d.entryPrice || !d.exitPrice) return;
+                const d = { 
+                    entryPrice: parseFloat(document.getElementById('entryPrice').value), 
+                    stopLoss: parseFloat(document.getElementById('stopLoss').value) || 0, 
+                    exitPrice: parseFloat(document.getElementById('exitPrice').value), 
+                    entryTime: document.getElementById('entryTime').value, 
+                    type: state.type, 
+                    timestamp: Date.now() 
+                };
+                
+                if (isNaN(d.entryPrice) || isNaN(d.exitPrice)) return;
+                
                 if (state.isOffline) {
                     if (state.editingId) state.trades = state.trades.map(t => t.id === state.editingId ? {...d, id: t.id} : t);
-                    else state.trades.push({...d, id: Date.now().toString()}); render();
+                    else state.trades.push({...d, id: Date.now().toString()}); 
+                    render();
                 } else {
-                    const c = collection(db, 'artifacts', appId, SYNC_PATH);
-                    if (state.editingId) await updateDoc(doc(db, 'artifacts', appId, SYNC_PATH, state.editingId), d);
-                    else await addDoc(c, d);
+                    if (!state.user) return;
+                    const colRef = collection(db, 'artifacts', appId, 'public', 'data', SYNC_COLLECTION);
+                    if (state.editingId) {
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', SYNC_COLLECTION, state.editingId), d);
+                    } else {
+                        await addDoc(colRef, d);
+                    }
                 }
-                state.editingId = null; document.getElementById('tradeForm').reset(); document.getElementById('submitBtn').innerText = 'Save Record 儲存紀錄'; window.updateType('long'); document.getElementById('entryTime').value = new Date().toISOString().slice(0, 16);
+                
+                state.editingId = null; 
+                document.getElementById('tradeForm').reset(); 
+                document.getElementById('submitBtn').innerText = 'Save Record 儲存紀錄'; 
+                window.updateType('long'); 
+                document.getElementById('entryTime').value = new Date().toISOString().slice(0, 16);
             };
-            const overlay = document.getElementById('calcBox'), display = document.getElementById('calcVal'); let buffer = "";
-            const openCalc = (id, label) => { state.activeInput = document.getElementById(id); document.getElementById('calcTitle').innerText = label; buffer = state.activeInput.value || ""; display.innerText = buffer || "0"; overlay.classList.replace('hidden', 'flex'); };
-            document.getElementById('entryPrice').onclick = () => openCalc('entryPrice', 'Entry Price 入場價位'); document.getElementById('stopLoss').onclick = () => openCalc('stopLoss', 'Stop Loss 停損價位'); document.getElementById('exitPrice').onclick = () => openCalc('exitPrice', 'Exit Price 出場價位');
-            window.calcIn = (key) => { if (key === 'C') buffer = ""; else if (key === 'B') buffer = buffer.slice(0, -1); else if (key === 'D') { state.activeInput.value = buffer; overlay.classList.replace('flex', 'hidden'); } else { if (key === '.' && buffer.includes('.')) return; buffer += key; } display.innerText = buffer || "0"; };
+
+            const overlay = document.getElementById('calcBox'), display = document.getElementById('calcVal'); 
+            let buffer = "";
+            
+            const openCalc = (id, label) => { 
+                state.activeInput = document.getElementById(id); 
+                document.getElementById('calcTitle').innerText = label; 
+                buffer = state.activeInput.value || ""; 
+                display.innerText = buffer || "0"; 
+                overlay.classList.replace('hidden', 'flex'); 
+            };
+
+            document.getElementById('entryPrice').onclick = () => openCalc('entryPrice', 'Entry Price 入場價位'); 
+            document.getElementById('stopLoss').onclick = () => openCalc('stopLoss', 'Stop Loss 停損價位'); 
+            document.getElementById('exitPrice').onclick = () => openCalc('exitPrice', 'Exit Price 出場價位');
+            
+            window.calcIn = (key) => { 
+                if (key === 'C') buffer = ""; 
+                else if (key === 'B') buffer = buffer.slice(0, -1); 
+                else if (key === 'D') { 
+                    state.activeInput.value = buffer; 
+                    overlay.classList.replace('flex', 'hidden'); 
+                } else { 
+                    if (key === '.' && buffer.includes('.')) return; 
+                    buffer += key; 
+                } 
+                display.innerText = buffer || "0"; 
+            };
         }
+
         init();
         if (typeof lucide !== 'undefined') lucide.createIcons();
     </script>
