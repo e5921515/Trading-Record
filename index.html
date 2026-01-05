@@ -236,12 +236,12 @@
     <!-- Firebase Implementation -->
     <script type="module">
 <script type="module">
-    // 1. 使用完整網址導入 Firebase 模組
+    // 1. 引用瀏覽器專用 Firebase 網址 (ES Modules)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
     import { getFirestore, collection, doc, addDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    // 2. 你的 Firebase 配置 (請確保填入你自己的資訊)
+    // 2. 你的 Firebase 配置 (變數名稱已統一為 fbConfig)
     const fbConfig = {
         apiKey: "AIzaSyAcshqWtMGXrx2mq_b10LEj7XV8cgVLKCU",
         authDomain: "trading-3ffb2.firebaseapp.com",
@@ -249,12 +249,11 @@
         storageBucket: "trading-3ffb2.firebasestorage.app",
         messagingSenderId: "1008165466686",
         appId: "1:1008165466686:web:a9836009a9ae0394ff176f"
-        measurementId: "G-R17HTW5BJ2"
     };
 
     const appId = 'trading-pro-v8';
 
-    // 3. 系統狀態與邏輯
+    // 3. 全域狀態管理
     const state = {
         trades: [],
         isOffline: true,
@@ -268,20 +267,26 @@
 
     let db, auth;
 
+    // 4. 系統初始化函式
     async function init() {
-        // 如果有填寫 API Key，嘗試連線雲端
-        if (fbConfig && fbConfig.apiKey && fbConfig.apiKey !== "你的API_KEY") {
+        console.log("系統正在初始化...");
+        // 檢查 fbConfig 是否存在
+        if (typeof fbConfig !== 'undefined' && fbConfig.apiKey) {
             try {
                 const app = initializeApp(fbConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
                 state.isOffline = false;
-                document.getElementById('status-dot').className = "w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]";
-                document.getElementById('status-label').innerText = "Cloud Sync Active";
                 
+                const dot = document.getElementById('status-dot');
+                const label = document.getElementById('status-label');
+                if(dot) dot.className = "w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]";
+                if(label) label.innerText = "Cloud Sync Active";
+
                 await signInAnonymously(auth);
+                console.log("Firebase 匿名登入成功");
             } catch (err) {
-                console.error("Firebase 連線失敗:", err);
+                console.error("Firebase 初始化失敗，切換至離線模式:", err);
                 enterOfflineMode();
             }
         } else {
@@ -308,15 +313,17 @@
 
     function enterOfflineMode() {
         state.isOffline = true;
-        document.getElementById('status-dot').className = "w-1.5 h-1.5 rounded-full bg-slate-600";
-        document.getElementById('status-label').innerText = "Offline Mode";
+        const dot = document.getElementById('status-dot');
+        const label = document.getElementById('status-label');
+        if(dot) dot.className = "w-1.5 h-1.5 rounded-full bg-slate-600";
+        if(label) label.innerText = "Offline Mode";
         render();
     }
 
-    // 將原本代碼中其他的 function (render, draw, compute, setupUI...) 放在這裡
-    // 並確保在 script 的最後呼叫 init()
-    
-    // 初始化系統
+    // --- 這裡放原本代碼中的 render, compute, draw, setupUI, edit 等函式 ---
+    // (請確保你沒有把這些 function 刪掉，如果刪掉了，請從最原始的代碼中貼回這裡)
+
+    // 最後啟動
     init();
 
     // 處理 Lucide 圖標
