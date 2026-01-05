@@ -25,7 +25,6 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* 現代感標題 */
         .modern-header {
             font-size: 2.5rem;
             font-weight: 900;
@@ -76,13 +75,9 @@
             transition: background 0.2s;
         }
 
-        .calc-key:active {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
+        .calc-key:active { background: rgba(255, 255, 255, 0.15); }
         .mono { font-family: 'JetBrains Mono', monospace; }
         
-        /* 動畫 */
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -92,7 +87,6 @@
 </head>
 <body class="pb-12">
 
-    <!-- Header Section -->
     <header class="pt-16 pb-8 text-center">
         <h1 class="modern-header">TRADING RECORD</h1>
         <div class="flex items-center justify-center gap-2 mt-4">
@@ -102,8 +96,6 @@
     </header>
 
     <main class="px-5 space-y-6 max-w-lg mx-auto">
-
-        <!-- 1. 輸入區塊 Input Section -->
         <section class="glass-card rounded-[2.5rem] p-7 animate-fade">
             <div class="flex gap-2 p-1 bg-black/40 rounded-2xl border border-white/5 mb-6">
                 <button type="button" id="btn-long" onclick="window.updateType('long')" class="flex-1 py-3.5 rounded-xl text-xs font-black transition-all">LONG 做多</button>
@@ -122,214 +114,10 @@
                         <input type="text" id="stopLoss" readonly class="input-glow w-full p-4 rounded-2xl text-lg font-bold outline-none text-rose-500" placeholder="0.00">
                     </div>
                 </div>
-
                 <div class="space-y-2">
                     <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">出場價位 Exit</label>
                     <input type="text" id="exitPrice" readonly class="input-glow w-full p-4 rounded-2xl text-lg font-bold outline-none" placeholder="0.00">
                 </div>
-
                 <div class="space-y-2">
                     <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">交易時間 Time</label>
-                    <input type="datetime-local" id="entryTime" class="input-glow w-full p-4 rounded-2xl text-sm outline-none">
-                </div>
-
-                <button type="submit" id="submitBtn" class="w-full py-5 bg-white text-black font-black rounded-2xl active:scale-[0.97] transition-all text-sm uppercase tracking-widest shadow-xl shadow-white/5">
-                    Save Record 儲存紀錄
-                </button>
-            </form>
-        </section>
-
-        <!-- 2. 統計數據 Statistics Grid -->
-        <section class="grid grid-cols-2 gap-3 animate-fade" style="animation-delay: 0.1s">
-            <div class="glass-card rounded-3xl p-5 col-span-2 border-l-4 border-l-cyan-500">
-                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">總淨損益 Net Profit</p>
-                <p id="stat-net" class="text-3xl font-black mono tracking-tighter">0.00</p>
-            </div>
-            
-            <div class="glass-card rounded-3xl p-5">
-                <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">盈利次數 Wins</p>
-                <p id="stat-wins" class="text-2xl font-black text-green-400 mono">0</p>
-            </div>
-            <div class="glass-card rounded-3xl p-5">
-                <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">虧損次數 Losses</p>
-                <p id="stat-losses" class="text-2xl font-black text-rose-500 mono">0</p>
-            </div>
-
-            <div class="glass-card rounded-3xl p-5">
-                <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">平均風報比 Avg RR</p>
-                <p id="stat-rr" class="text-xl font-bold text-cyan-400 mono">0.00</p>
-            </div>
-            <div class="glass-card rounded-3xl p-5">
-                <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">勝率 Win Rate</p>
-                <p id="stat-wr" class="text-xl font-bold text-white mono">0%</p>
-            </div>
-            
-            <div class="glass-card rounded-3xl p-5">
-                <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">連續盈利 Streak</p>
-                <p id="stat-winS" class="text-xl font-bold text-green-400 mono">0</p>
-            </div>
-            <div class="glass-card rounded-3xl p-5">
-                <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">連續虧損 Streak</p>
-                <p id="stat-lossS" class="text-xl font-bold text-rose-500 mono">0</p>
-            </div>
-            <div class="glass-card rounded-3xl p-5 col-span-2 text-center">
-                <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">最大回撤 Max Drawdown</p>
-                <p id="stat-dd" class="text-xl font-bold text-orange-400 mono">0.0%</p>
-            </div>
-        </section>
-
-        <!-- 3. 曲線圖 Chart Section -->
-        <section class="glass-card rounded-[2.5rem] p-7 animate-fade" style="animation-delay: 0.2s">
-            <h2 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-6">累積損益曲線 Equity Curve</h2>
-            <div class="h-64 w-full">
-                <canvas id="equityChart"></canvas>
-            </div>
-        </section>
-
-        <!-- 4. 歷史紀錄 History List -->
-        <section class="space-y-4 animate-fade" style="animation-delay: 0.3s">
-            <h3 class="text-center text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">Transaction History</h3>
-            <div id="history-list" class="space-y-3">
-                <!-- Records by JS -->
-            </div>
-            
-            <div id="pagination" class="flex justify-between items-center px-2 py-4 hidden">
-                <button onclick="window.movePage(-1)" id="btnPrev" class="px-5 py-3 rounded-2xl bg-white/5 text-[10px] font-bold uppercase tracking-wider disabled:opacity-20">Prev</button>
-                <span id="pageTxt" class="text-[10px] font-black text-slate-500 uppercase">Page 1</span>
-                <button onclick="window.movePage(1)" id="btnNext" class="px-5 py-3 rounded-2xl bg-white/5 text-[10px] font-bold uppercase tracking-wider disabled:opacity-20">Next</button>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- 計算機 Calculator Overlay -->
-    <div id="calcBox" class="fixed inset-0 bg-black/95 z-50 hidden flex-col justify-end">
-        <div class="bg-[#0a0c12] rounded-t-[3rem] p-8 pb-16 border-t border-white/5 shadow-2xl">
-            <div class="flex flex-col mb-8 px-2 border-b border-white/5 pb-6">
-                <span id="calcTitle" class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2">Input Amount</span>
-                <div id="calcVal" class="text-5xl font-light text-cyan-400 mono">0</div>
-            </div>
-            <div class="grid grid-cols-4 gap-3">
-                <button onclick="calcIn('7')" class="calc-key">7</button>
-                <button onclick="calcIn('8')" class="calc-key">8</button>
-                <button onclick="calcIn('9')" class="calc-key">9</button>
-                <button onclick="calcIn('B')" class="calc-key bg-slate-800 text-rose-400 flex items-center justify-center">
-                    <i data-lucide="arrow-left" class="w-8 h-8"></i>
-                </button>
-                
-                <button onclick="calcIn('4')" class="calc-key">4</button>
-                <button onclick="calcIn('5')" class="calc-key">5</button>
-                <button onclick="calcIn('6')" class="calc-key">6</button>
-                <button onclick="calcIn('C')" class="calc-key bg-slate-800 text-slate-400">C</button>
-                
-                <button onclick="calcIn('1')" class="calc-key">1</button>
-                <button onclick="calcIn('2')" class="calc-key">2</button>
-                <button onclick="calcIn('3')" class="calc-key">3</button>
-                <button onclick="calcIn('.')" class="calc-key">.</button>
-                
-                <button onclick="calcIn('0')" class="col-span-2 calc-key">0</button>
-                <button onclick="calcIn('D')" class="col-span-2 calc-key bg-cyan-500 text-black uppercase tracking-tighter">Enter 確認</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Firebase Implementation -->
-    <script type="module">
-<script type="module">
-    // 1. 引用瀏覽器專用 Firebase 網址 (ES Modules)
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-    import { getFirestore, collection, doc, addDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-
-    // 2. 你的 Firebase 配置 (變數名稱已統一為 fbConfig)
-    const fbConfig = {
-        apiKey: "AIzaSyAcshqWtMGXrx2mq_b10LEj7XV8cgVLKCU",
-        authDomain: "trading-3ffb2.firebaseapp.com",
-        projectId: "trading-3ffb2",
-        storageBucket: "trading-3ffb2.firebasestorage.app",
-        messagingSenderId: "1008165466686",
-        appId: "1:1008165466686:web:a9836009a9ae0394ff176f"
-    };
-
-    const appId = 'trading-pro-v8';
-
-    // 3. 全域狀態管理
-    const state = {
-        trades: [],
-        isOffline: true,
-        user: null,
-        editingId: null,
-        activeInput: null,
-        type: 'long',
-        page: 1,
-        limit: 10
-    };
-
-    let db, auth;
-
-    // 4. 系統初始化函式
-    async function init() {
-        console.log("系統正在初始化...");
-        // 檢查 fbConfig 是否存在
-        if (typeof fbConfig !== 'undefined' && fbConfig.apiKey) {
-            try {
-                const app = initializeApp(fbConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                state.isOffline = false;
-                
-                const dot = document.getElementById('status-dot');
-                const label = document.getElementById('status-label');
-                if(dot) dot.className = "w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]";
-                if(label) label.innerText = "Cloud Sync Active";
-
-                await signInAnonymously(auth);
-                console.log("Firebase 匿名登入成功");
-            } catch (err) {
-                console.error("Firebase 初始化失敗，切換至離線模式:", err);
-                enterOfflineMode();
-            }
-        } else {
-            enterOfflineMode();
-        }
-        
-        setupUI();
-        
-        if (state.isOffline) {
-            render();
-        } else {
-            onAuthStateChanged(auth, (u) => {
-                state.user = u;
-                if (u) {
-                    const q = collection(db, 'artifacts', appId, 'users', u.uid, 'trades');
-                    onSnapshot(q, (snap) => {
-                        state.trades = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                        render();
-                    });
-                }
-            });
-        }
-    }
-
-    function enterOfflineMode() {
-        state.isOffline = true;
-        const dot = document.getElementById('status-dot');
-        const label = document.getElementById('status-label');
-        if(dot) dot.className = "w-1.5 h-1.5 rounded-full bg-slate-600";
-        if(label) label.innerText = "Offline Mode";
-        render();
-    }
-
-    // --- 這裡放原本代碼中的 render, compute, draw, setupUI, edit 等函式 ---
-    // (請確保你沒有把這些 function 刪掉，如果刪掉了，請從最原始的代碼中貼回這裡)
-
-    // 最後啟動
-    init();
-
-    // 處理 Lucide 圖標
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
-</script>
-</body>
-</html>
+                    <input type="datetime-local" id="entryTime" class="input-glow w-full p-
