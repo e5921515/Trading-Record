@@ -235,32 +235,27 @@
 
     <!-- Firebase Implementation -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-        const state = {
-            trades: [],
-            isOffline: true,
-            user: null,
-            editingId: null,
-            activeInput: null,
-            type: 'long',
-            page: 1,
-            limit: 10
-        };
-
-        const fbConfig = {
-  apiKey: "AIzaSyAcshqWtMGXrx2mq_b10LEj7XV8cgVLKCU",
-  authDomain: "trading-3ffb2.firebaseapp.com",
-  projectId: "trading-3ffb2",
-  storageBucket: "trading-3ffb2.firebasestorage.app",
-  messagingSenderId: "1008165466686",
-  appId: "1:1008165466686:web:a9836009a9ae0394ff176f",
-  measurementId: "G-R17HTW5BJ2"
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyAcshqWtMGXrx2mq_b10LEj7XV8cgVLKCU",
+  authDomain: "trading-3ffb2.firebaseapp.com",
+  projectId: "trading-3ffb2",
+  storageBucket: "trading-3ffb2.firebasestorage.app",
+  messagingSenderId: "1008165466686",
+  appId: "1:1008165466686:web:a9836009a9ae0394ff176f",
+  measurementId: "G-R17HTW5BJ2"
 };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'trading-pro-v8';
-        let db, auth;
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
         async function init() {
             if (fbConfig.apiKey) {
