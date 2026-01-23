@@ -1,9 +1,8 @@
 <!-- 
   DEPLOYMENT GUIDE / 部署指南:
   1. Save this code as 'index.html' on your computer.
-  2. Go to 'tiiny.host' in your browser.
-  3. Drag and drop 'index.html' onto the site.
-  4. Enter a name and click 'Deploy'.
+  2. Go to 'tiiny.host' or GitHub to deploy.
+  NEW FEATURE: Support physical keyboard input for the calculator.
 -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -13,7 +12,6 @@
     <title>Trading Record Pro - Master Sync</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Chart.js 數據標籤插件 -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.0/lucide.min.js"></script>
     <style>
@@ -25,54 +23,17 @@
             --long-green: #4ade80;
             --short-red: #f43f5e;
         }
-        body { 
-            font-family: 'Inter', 'Noto Sans TC', sans-serif; 
-            background-color: var(--bg-deep); 
-            color: #f0f6fc; 
-            -webkit-font-smoothing: antialiased; 
-            overflow-x: hidden;
-        }
-        .modern-header { 
-            font-size: 2.5rem; 
-            font-weight: 900; 
-            letter-spacing: -0.05em; 
-            background: linear-gradient(to bottom, #fff 40%, #64748b); 
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent; 
-            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.1)); 
-            text-transform: uppercase; 
-        }
-        .glass-card { 
-            background: var(--card-glass); 
-            backdrop-filter: blur(15px); 
-            border: 1px solid rgba(255, 255, 255, 0.05); 
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); 
-        }
-        .input-glow { 
-            background: rgba(1, 4, 9, 0.6) !important; 
-            border: 1px solid rgba(48, 54, 61, 1) !important; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-        }
-        .input-glow:focus { 
-            border-color: var(--neon-cyan) !important; 
-            box-shadow: 0 0 15px rgba(34, 211, 238, 0.15); 
-        }
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: var(--bg-deep); color: #f0f6fc; -webkit-font-smoothing: antialiased; }
+        .modern-header { font-size: 2.5rem; font-weight: 900; letter-spacing: -0.05em; background: linear-gradient(to bottom, #fff 40%, #64748b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.1)); text-transform: uppercase; }
+        .glass-card { background: var(--card-glass); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); }
+        .input-glow { background: rgba(1, 4, 9, 0.6) !important; border: 1px solid rgba(48, 54, 61, 1) !important; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .input-glow:focus { border-color: var(--neon-cyan) !important; box-shadow: 0 0 15px rgba(34, 211, 238, 0.15); }
         .btn-toggle-long { background: var(--long-green); color: #052e16; font-weight: 900; }
         .btn-toggle-short { background: var(--short-red); color: #fff; font-weight: 900; }
-        .calc-key { 
-            height: 64px; 
-            font-size: 1.5rem; 
-            font-weight: 600; 
-            border-radius: 1rem; 
-            background: rgba(255, 255, 255, 0.05); 
-            transition: background 0.2s; 
-        }
-        .calc-key:active { background: rgba(255, 255, 255, 0.15); }
+        .calc-key { height: 64px; font-size: 1.5rem; font-weight: 600; border-radius: 1rem; background: rgba(255, 255, 255, 0.05); transition: all 0.1s; }
+        .calc-key:active, .calc-key.active { background: rgba(34, 211, 238, 0.3); transform: scale(0.95); }
         .mono { font-family: 'JetBrains Mono', monospace; }
-        @keyframes fadeInUp { 
-            from { opacity: 0; transform: translateY(10px); } 
-            to { opacity: 1; transform: translateY(0); } 
-        }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade { animation: fadeInUp 0.4s ease-out forwards; }
     </style>
 </head>
@@ -82,12 +43,11 @@
         <h1 class="modern-header">TRADING PRO</h1>
         <div class="flex items-center justify-center gap-2 mt-3">
             <div id="status-dot" class="w-2 h-2 rounded-full bg-slate-600"></div>
-            <p id="status-label" class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">系統初始化中...</p>
+            <p id="status-label" class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Initialising System</p>
         </div>
     </header>
 
     <main class="px-5 space-y-6 max-w-lg mx-auto">
-        <!-- 交易輸入區 -->
         <section class="glass-card rounded-[2rem] p-6 animate-fade">
             <div class="flex gap-2 p-1 bg-black/40 rounded-xl border border-white/5 mb-6">
                 <button type="button" id="btn-long" onclick="window.updateType('long')" class="flex-1 py-3 rounded-lg text-xs transition-all">LONG 做多</button>
@@ -97,27 +57,27 @@
             <form id="tradeForm" class="space-y-4">
                 <div class="grid grid-cols-2 gap-3">
                     <div class="space-y-1.5">
-                        <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Entry 入場價位</label>
+                        <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Entry 入場</label>
                         <input type="text" id="entryPrice" readonly class="input-glow w-full p-4 rounded-xl text-lg font-bold outline-none cursor-pointer" placeholder="0.00">
                     </div>
                     <div class="space-y-1.5">
-                        <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Stop Loss 停損價</label>
+                        <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Stop Loss 停損</label>
                         <input type="text" id="stopLoss" readonly class="input-glow w-full p-4 rounded-xl text-lg font-bold outline-none text-rose-500 cursor-pointer" placeholder="0.00">
                     </div>
                 </div>
                 <div class="space-y-1.5">
-                    <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Exit 出場價位</label>
+                    <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Exit 出場</label>
                     <input type="text" id="exitPrice" readonly class="input-glow w-full p-4 rounded-xl text-lg font-bold outline-none cursor-pointer" placeholder="0.00">
                 </div>
                 <div class="space-y-1.5">
-                    <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Date & Time 交易時間</label>
+                    <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Date & Time 時間</label>
                     <input type="datetime-local" id="entryTime" class="input-glow w-full p-4 rounded-xl text-sm outline-none">
                 </div>
-                <button type="submit" id="submitBtn" class="w-full py-5 bg-white text-black font-black rounded-xl active:scale-95 transition-all text-sm uppercase tracking-widest shadow-lg shadow-white/5">Save Record 儲存紀錄</button>
+                <button type="submit" id="submitBtn" class="w-full py-5 bg-white text-black font-black rounded-xl active:scale-95 transition-all text-sm uppercase tracking-widest">Save Record 儲存紀錄</button>
             </form>
         </section>
 
-        <!-- 數據儀表板 -->
+        <!-- Stats -->
         <section class="grid grid-cols-2 gap-3 animate-fade" style="animation-delay: 0.1s">
             <div class="glass-card rounded-2xl p-5 col-span-2 border-l-4 border-l-cyan-500 flex justify-between items-end">
                 <div>
@@ -129,38 +89,32 @@
                     <p id="stat-wr" class="text-xl font-bold text-white mono">0%</p>
                 </div>
             </div>
-            <div class="glass-card rounded-2xl p-4 border-b border-green-500/20">
-                <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Max Wins 最大連勝</p>
-                <p id="stat-max-wins" class="text-xl font-black text-green-400 mono">0</p>
-            </div>
-            <div class="glass-card rounded-2xl p-4 border-b border-rose-500/20">
-                <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Max Losses 最大連敗</p>
-                <p id="stat-max-losses" class="text-xl font-black text-rose-500 mono">0</p>
-            </div>
+            <div class="glass-card rounded-2xl p-4"><p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Max Wins 連勝</p><p id="stat-max-wins" class="text-xl font-black text-green-400 mono">0</p></div>
+            <div class="glass-card rounded-2xl p-4"><p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Max Losses 連敗</p><p id="stat-max-losses" class="text-xl font-black text-rose-500 mono">0</p></div>
         </section>
 
-        <!-- 圖表區 -->
+        <!-- Chart -->
         <section class="glass-card rounded-[2rem] p-6 animate-fade" style="animation-delay: 0.2s">
-            <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 text-center">Equity Curve 損益曲線 (移至點上顯示數值)</h2>
+            <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 text-center">Equity Curve 損益曲線</h2>
             <div class="h-64 w-full"><canvas id="equityChart"></canvas></div>
         </section>
 
-        <!-- 歷史紀錄 -->
+        <!-- History -->
         <section class="space-y-4 animate-fade" style="animation-delay: 0.3s">
             <div class="flex justify-between items-center px-1">
-                <h3 class="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">Transaction History</h3>
-                <button id="btn-clear-all" onclick="window.clearAll()" class="px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-500 text-[9px] font-black uppercase tracking-widest border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all">Clear All 全部刪除</button>
+                <h3 class="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">History</h3>
+                <button id="btn-clear-all" onclick="window.clearAll()" class="px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-500 text-[9px] font-black uppercase tracking-widest border border-rose-500/20">Clear All 全部刪除</button>
             </div>
             <div id="history-list" class="space-y-3"></div>
             <div id="pagination" class="flex justify-between items-center px-2 hidden">
-                <button onclick="window.movePage(-1)" id="btnPrev" class="px-4 py-2 rounded-xl bg-white/5 text-[9px] font-bold uppercase tracking-widest disabled:opacity-20">Prev</button>
+                <button onclick="window.movePage(-1)" id="btnPrev" class="px-4 py-2 rounded-xl bg-white/5 text-[9px] font-bold uppercase disabled:opacity-20">Prev</button>
                 <span id="pageTxt" class="text-[9px] font-black text-slate-500 uppercase">Page 1</span>
-                <button onclick="window.movePage(1)" id="btnNext" class="px-4 py-2 rounded-xl bg-white/5 text-[9px] font-bold uppercase tracking-widest disabled:opacity-20">Next</button>
+                <button onclick="window.movePage(1)" id="btnNext" class="px-4 py-2 rounded-xl bg-white/5 text-[9px] font-bold uppercase disabled:opacity-20">Next</button>
             </div>
         </section>
     </main>
 
-    <!-- 數字計算盤 -->
+    <!-- Calculator Overlay -->
     <div id="calcBox" class="fixed inset-0 bg-black/95 z-[100] hidden flex-col justify-end">
         <div class="bg-[#0a0c12] rounded-t-[2.5rem] p-6 pb-12 border-t border-white/5 shadow-2xl">
             <div class="flex flex-col mb-6 px-2 border-b border-white/5 pb-4">
@@ -168,12 +122,23 @@
                 <div id="calcVal" class="text-4xl font-light text-cyan-400 mono">0</div>
             </div>
             <div class="grid grid-cols-4 gap-2.5">
-                <button onclick="calcIn('7')" class="calc-key">7</button><button onclick="calcIn('8')" class="calc-key">8</button><button onclick="calcIn('9')" class="calc-key">9</button>
-                <button onclick="calcIn('B')" class="calc-key bg-slate-800 text-rose-400 flex items-center justify-center"><i data-lucide="delete" class="w-6 h-6"></i></button>
-                <button onclick="calcIn('4')" class="calc-key">4</button><button onclick="calcIn('5')" class="calc-key">5</button><button onclick="calcIn('6')" class="calc-key">6</button><button onclick="calcIn('C')" class="calc-key bg-slate-800 text-slate-400">C</button>
-                <button onclick="calcIn('1')" class="calc-key">1</button><button onclick="calcIn('2')" class="calc-key">2</button><button onclick="calcIn('3')" class="calc-key">3</button><button onclick="calcIn('.')" class="calc-key">.</button>
-                <button onclick="calcIn('0')" class="col-span-2 calc-key">0</button>
-                <button onclick="calcIn('D')" class="col-span-2 calc-key bg-cyan-500 text-black font-black uppercase tracking-widest">Enter 確認</button>
+                <button id="key-7" onclick="calcIn('7')" class="calc-key">7</button>
+                <button id="key-8" onclick="calcIn('8')" class="calc-key">8</button>
+                <button id="key-9" onclick="calcIn('9')" class="calc-key">9</button>
+                <button id="key-back" onclick="calcIn('B')" class="calc-key bg-slate-800 text-rose-400 flex items-center justify-center"><i data-lucide="delete" class="w-6 h-6"></i></button>
+                
+                <button id="key-4" onclick="calcIn('4')" class="calc-key">4</button>
+                <button id="key-5" onclick="calcIn('5')" class="calc-key">5</button>
+                <button id="key-6" onclick="calcIn('6')" class="calc-key">6</button>
+                <button id="key-clear" onclick="calcIn('C')" class="calc-key bg-slate-800 text-slate-400">C</button>
+                
+                <button id="key-1" onclick="calcIn('1')" class="calc-key">1</button>
+                <button id="key-2" onclick="calcIn('2')" class="calc-key">2</button>
+                <button id="key-3" onclick="calcIn('3')" class="calc-key">3</button>
+                <button id="key-dot" onclick="calcIn('.')" class="calc-key">.</button>
+                
+                <button id="key-0" onclick="calcIn('0')" class="col-span-2 calc-key">0</button>
+                <button id="key-enter" onclick="calcIn('D')" class="col-span-2 calc-key bg-cyan-500 text-black font-black uppercase">Enter 確認</button>
             </div>
         </div>
     </div>
@@ -181,9 +146,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // 註冊 Chart.js 標籤插件
         Chart.register(ChartDataLabels);
 
         const fbConfig = {
@@ -195,15 +159,7 @@
             appId: "1:1008165466686:web:a9836009a9ae0394ff176f"
         };
 
-        const state = { 
-            trades: [], 
-            user: null, 
-            editingId: null, 
-            type: 'long', 
-            page: 1, 
-            limit: 10, 
-            clearConfirmed: false 
-        };
+        const state = { trades: [], user: null, editingId: null, type: 'long', page: 1, limit: 10, clearConfirmed: false };
         const appId = 'trading-pro-v8';
         const PATH_COLL = 'shared_trades_v1';
         let db, auth, chart = null;
@@ -214,23 +170,19 @@
                 auth = getAuth(app);
                 db = getFirestore(app);
                 document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]";
-                document.getElementById('status-label').innerText = "Cloud Sync Active";
+                document.getElementById('status-label').innerText = "Live Cloud Sync";
                 await signInAnonymously(auth);
-            } catch (e) {
-                document.getElementById('status-label').innerText = "Offline Mode";
-            }
+            } catch (e) { document.getElementById('status-label').innerText = "Offline Mode"; }
             
             setupUI();
-            
             onAuthStateChanged(auth, (u) => {
                 state.user = u;
                 if (u) {
-                    // 使用規範路徑: /artifacts/{appId}/public/data/{collectionName}
                     const colRef = collection(db, 'artifacts', appId, 'public', 'data', PATH_COLL);
                     onSnapshot(colRef, (snap) => {
                         state.trades = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                         render();
-                    }, (err) => console.error("Sync Error:", err));
+                    });
                 }
             });
         }
@@ -242,12 +194,8 @@
             sorted.forEach(t => {
                 const pl = t.type === 'long' ? (t.exitPrice - t.entryPrice) : (t.entryPrice - t.exitPrice);
                 net += pl;
-                if (pl > 0) { wins++; curW++; curL = 0; } 
-                else if (pl < 0) { losses++; curL++; curW = 0; }
-                else { curW = 0; curL = 0; }
-                
-                maxW = Math.max(maxW, curW); 
-                maxL = Math.max(maxL, curL);
+                if (pl > 0) { wins++; curW++; curL = 0; } else if (pl < 0) { losses++; curL++; curW = 0; }
+                maxW = Math.max(maxW, curW); maxL = Math.max(maxL, curL);
                 eq.push(net);
             });
 
@@ -259,41 +207,31 @@
 
             drawChart(eq);
 
-            const list = document.getElementById('history-list'); 
-            list.innerHTML = '';
+            const list = document.getElementById('history-list'); list.innerHTML = '';
             const displayList = [...state.trades].sort((a,b) => new Date(b.entryTime) - new Date(a.entryTime));
             const totalP = Math.ceil(displayList.length / state.limit) || 1;
 
             displayList.slice((state.page-1)*state.limit, state.page*state.limit).forEach(t => {
                 const pl = t.type === 'long' ? (t.exitPrice - t.entryPrice) : (t.entryPrice - t.exitPrice);
                 const card = document.createElement('div');
-                card.className = 'glass-card rounded-2xl p-4 flex justify-between items-center active:scale-95 transition-all cursor-pointer group';
+                card.className = 'glass-card rounded-2xl p-4 flex justify-between items-center active:scale-95 transition-all';
                 card.innerHTML = `
-                    <div class="flex gap-4 items-center flex-1" onclick="window.edit('${t.id}')">
-                        <div class="w-1 h-10 rounded-full ${t.type === 'long' ? 'bg-green-500' : 'bg-rose-500'}"></div>
+                    <div class="flex gap-4 items-center flex-1 cursor-pointer" onclick="window.edit('${t.id}')">
+                        <div class="w-1 h-8 rounded-full ${t.type === 'long' ? 'bg-green-500' : 'bg-rose-500'}"></div>
                         <div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-[9px] font-black ${t.type === 'long' ? 'text-green-500' : 'text-rose-500'} uppercase">${t.type}</span>
-                                <span class="text-[9px] text-slate-600 font-bold">${new Date(t.entryTime).toLocaleDateString()}</span>
-                            </div>
+                            <div class="text-[9px] font-black ${t.type === 'long' ? 'text-green-500' : 'text-rose-500'} uppercase">${t.type}</div>
                             <div class="text-xs font-bold text-slate-300 mono">${t.entryPrice} → ${t.exitPrice}</div>
                         </div>
                     </div>
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-3">
                         <div class="text-right font-black mono ${pl >= 0 ? 'text-green-400' : 'text-rose-500'}">${pl >= 0 ? '+' : ''}${pl.toFixed(2)}</div>
-                        <button onclick="window.delTrade(event, '${t.id}')" class="p-3 bg-rose-500/10 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
+                        <button onclick="window.delTrade(event, '${t.id}')" class="p-2.5 bg-rose-500/10 text-rose-500 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </div>`;
                 list.appendChild(card);
             });
 
             document.getElementById('pageTxt').innerText = `Page ${state.page} / ${totalP}`;
             document.getElementById('pagination').classList.toggle('hidden', state.trades.length === 0);
-            document.getElementById('btn-clear-all').classList.toggle('hidden', state.trades.length === 0);
-            
-            if (state.trades.length === 0) list.innerHTML = '<div class="text-center py-10 text-slate-700 text-[11px] font-black uppercase tracking-widest">No records found</div>';
-            
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
@@ -302,48 +240,18 @@
             if (chart) chart.destroy();
             chart = new Chart(ctx, {
                 type: 'line',
-                data: { 
-                    labels: data.map((_, i) => i === 0 ? 'Start' : `#${i}`), 
-                    datasets: [{ 
-                        data: data, 
-                        borderColor: '#22d3ee', 
-                        borderWidth: 3, 
-                        pointRadius: 6, 
-                        pointHoverRadius: 10, 
-                        pointBackgroundColor: '#22d3ee', 
-                        tension: 0.3, 
-                        fill: true, 
-                        backgroundColor: 'rgba(34, 211, 238, 0.08)' 
-                    }] 
-                },
+                data: { labels: data.map((_, i) => i), datasets: [{ data: data, borderColor: '#22d3ee', borderWidth: 3, pointRadius: 6, pointHoverRadius: 10, pointBackgroundColor: '#22d3ee', tension: 0.3, fill: true, backgroundColor: 'rgba(34, 211, 238, 0.05)' }] },
                 options: {
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'nearest', intersect: true },
+                    responsive: true, maintainAspectRatio: false,
                     plugins: { 
                         legend: false,
                         datalabels: {
-                            display: (ctx) => ctx.active, // 僅在 Hover 時顯示
-                            backgroundColor: '#22d3ee', 
-                            color: '#000', 
-                            borderRadius: 6, 
-                            padding: { top: 4, bottom: 4, left: 8, right: 8 },
-                            font: { weight: '900', size: 12, family: 'JetBrains Mono' }, 
-                            formatter: (v) => v.toFixed(2), 
-                            align: 'top', 
-                            offset: 12
-                        },
-                        tooltip: {
-                            backgroundColor: '#0f172a',
-                            titleFont: { size: 12 },
-                            bodyFont: { size: 14, family: 'JetBrains Mono' },
-                            callbacks: { label: (ctx) => ` Equity: ${ctx.parsed.y.toFixed(2)}` }
+                            display: (ctx) => ctx.active,
+                            backgroundColor: '#22d3ee', color: '#000', borderRadius: 4, padding: 6,
+                            font: { weight: 'bold', size: 11 }, formatter: (v) => v.toFixed(2), align: 'top', offset: 10
                         }
                     },
-                    scales: { 
-                        x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 10 } } }, 
-                        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#475569', font: { size: 10 } } } 
-                    }
+                    scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#475569', font: { size: 10 } } } }
                 }
             });
         }
@@ -354,36 +262,22 @@
             document.getElementById('btn-short').className = `flex-1 py-3 rounded-lg text-xs transition-all ${t==='short'?'btn-toggle-short':'bg-white/5 text-slate-500'}`;
         };
 
-        window.delTrade = async (e, id) => { 
-            e.stopPropagation(); 
-            if (!state.user) return;
-            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', PATH_COLL, id)); 
-        };
+        window.delTrade = async (e, id) => { e.stopPropagation(); await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', PATH_COLL, id)); };
         
         window.clearAll = async () => {
             if (!state.clearConfirmed) {
                 state.clearConfirmed = true;
                 const btn = document.getElementById('btn-clear-all');
-                btn.innerText = "SURE? 確定清空？"; 
-                btn.className = "px-3 py-1.5 rounded-lg bg-rose-500 text-white text-[9px] font-black uppercase tracking-widest transition-all";
-                setTimeout(() => { 
-                    state.clearConfirmed = false; 
-                    btn.innerText = "Clear All 全部刪除"; 
-                    btn.className = "px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-500 text-[9px] font-black uppercase tracking-widest border border-rose-500/20"; 
-                }, 3000);
+                btn.innerText = "Confirm? 確定清空？"; btn.classList.add('bg-rose-500', 'text-white');
+                setTimeout(() => { state.clearConfirmed = false; btn.innerText = "Clear All 全部刪除"; btn.classList.remove('bg-rose-500', 'text-white'); }, 3000);
                 return;
             }
-            if (!state.user) return;
-            // 注意：Firestore 並無單一指令刪除 Collection，需循環刪除
-            for (const t of state.trades) {
-                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', PATH_COLL, t.id));
-            }
+            for (const t of state.trades) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', PATH_COLL, t.id));
             state.clearConfirmed = false;
         };
 
         window.edit = (id) => {
             const t = state.trades.find(x => x.id === id);
-            if (!t) return;
             state.editingId = id;
             document.getElementById('entryPrice').value = t.entryPrice;
             document.getElementById('stopLoss').value = t.stopLoss;
@@ -407,21 +301,15 @@
                     stopLoss: parseFloat(document.getElementById('stopLoss').value) || 0,
                     exitPrice: parseFloat(document.getElementById('exitPrice').value),
                     entryTime: document.getElementById('entryTime').value,
-                    type: state.type, 
-                    timestamp: Date.now()
+                    type: state.type, timestamp: Date.now()
                 };
                 if (isNaN(d.entryPrice) || isNaN(d.exitPrice)) return;
-                
-                if (!state.user) return;
-                const colRef = collection(db, 'artifacts', appId, 'public', 'data', PATH_COLL);
-                
                 if (state.editingId) {
                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', PATH_COLL, state.editingId), d);
                     state.editingId = null;
                 } else {
-                    await addDoc(colRef, d);
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', PATH_COLL), d);
                 }
-                
                 document.getElementById('tradeForm').reset();
                 document.getElementById('submitBtn').innerText = 'Save Record 儲存紀錄';
                 document.getElementById('entryTime').value = new Date().toISOString().slice(0, 16);
@@ -433,14 +321,13 @@
             const openCalc = (id, label) => {
                 activeIn = document.getElementById(id);
                 document.getElementById('calcTitle').innerText = label;
-                buffer = activeIn.value || ""; 
-                display.innerText = buffer || "0";
+                buffer = activeIn.value || ""; display.innerText = buffer || "0";
                 overlay.classList.replace('hidden', 'flex');
             };
 
-            document.getElementById('entryPrice').onclick = () => openCalc('entryPrice', 'Entry Price 入場價位');
-            document.getElementById('stopLoss').onclick = () => openCalc('stopLoss', 'Stop Loss 停損價位');
-            document.getElementById('exitPrice').onclick = () => openCalc('exitPrice', 'Exit Price 出場價位');
+            document.getElementById('entryPrice').onclick = () => openCalc('entryPrice', 'Entry Price');
+            document.getElementById('stopLoss').onclick = () => openCalc('stopLoss', 'Stop Loss');
+            document.getElementById('exitPrice').onclick = () => openCalc('exitPrice', 'Exit Price');
 
             window.calcIn = (k) => {
                 if (k==='C') buffer = ""; 
@@ -448,7 +335,33 @@
                 else if (k==='D') { activeIn.value = buffer; overlay.classList.replace('flex', 'hidden'); }
                 else { if (k==='.' && buffer.includes('.')) return; buffer += k; }
                 display.innerText = buffer || "0";
+                
+                // 視覺回饋：如果按鍵存在則觸發動畫
+                const btnId = k === '.' ? 'key-dot' : k === 'B' ? 'key-back' : k === 'C' ? 'key-clear' : k === 'D' ? 'key-enter' : `key-${k}`;
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    btn.classList.add('active');
+                    setTimeout(() => btn.classList.remove('active'), 100);
+                }
             };
+
+            // 新增鍵盤輸入支援
+            window.addEventListener('keydown', (e) => {
+                if (overlay.classList.contains('flex')) {
+                    if (/[0-9]/.test(e.key)) {
+                        window.calcIn(e.key);
+                    } else if (e.key === '.') {
+                        window.calcIn('.');
+                    } else if (e.key === 'Backspace') {
+                        window.calcIn('B');
+                    } else if (e.key === 'Enter') {
+                        window.calcIn('D');
+                        e.preventDefault(); // 防止提交表單
+                    } else if (e.key === 'Escape' || e.key.toLowerCase() === 'c') {
+                        window.calcIn('C');
+                    }
+                }
+            });
         }
 
         init();
