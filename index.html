@@ -2,7 +2,7 @@
   DEPLOYMENT GUIDE / 部署指南:
   1. Save this code as 'index.html' on your computer.
   2. Go to 'tiiny.host' or GitHub to deploy.
-  NEW FEATURE: Support physical keyboard input for the calculator.
+  3. IMPORTANT: If using Firebase, add your domain to "Authorized Domains" in Firebase Console.
 -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -57,20 +57,20 @@
             <form id="tradeForm" class="space-y-4">
                 <div class="grid grid-cols-2 gap-3">
                     <div class="space-y-1.5">
-                        <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Entry 入場</label>
+                        <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Entry 入場價位</label>
                         <input type="text" id="entryPrice" readonly class="input-glow w-full p-4 rounded-xl text-lg font-bold outline-none cursor-pointer" placeholder="0.00">
                     </div>
                     <div class="space-y-1.5">
-                        <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Stop Loss 停損</label>
+                        <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Stop Loss 停損價</label>
                         <input type="text" id="stopLoss" readonly class="input-glow w-full p-4 rounded-xl text-lg font-bold outline-none text-rose-500 cursor-pointer" placeholder="0.00">
                     </div>
                 </div>
                 <div class="space-y-1.5">
-                    <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Exit 出場</label>
+                    <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Exit 出場價位</label>
                     <input type="text" id="exitPrice" readonly class="input-glow w-full p-4 rounded-xl text-lg font-bold outline-none cursor-pointer" placeholder="0.00">
                 </div>
                 <div class="space-y-1.5">
-                    <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Date & Time 時間</label>
+                    <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Date & Time 交易時間</label>
                     <input type="datetime-local" id="entryTime" class="input-glow w-full p-4 rounded-xl text-sm outline-none">
                 </div>
                 <button type="submit" id="submitBtn" class="w-full py-5 bg-white text-black font-black rounded-xl active:scale-95 transition-all text-sm uppercase tracking-widest">Save Record 儲存紀錄</button>
@@ -95,7 +95,7 @@
 
         <!-- Chart -->
         <section class="glass-card rounded-[2rem] p-6 animate-fade" style="animation-delay: 0.2s">
-            <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 text-center">Equity Curve 損益曲線</h2>
+            <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 text-center">Equity Curve 損益曲線 (移至點上顯示)</h2>
             <div class="h-64 w-full"><canvas id="equityChart"></canvas></div>
         </section>
 
@@ -240,7 +240,7 @@
             if (chart) chart.destroy();
             chart = new Chart(ctx, {
                 type: 'line',
-                data: { labels: data.map((_, i) => i), datasets: [{ data: data, borderColor: '#22d3ee', borderWidth: 3, pointRadius: 6, pointHoverRadius: 10, pointBackgroundColor: '#22d3ee', tension: 0.3, fill: true, backgroundColor: 'rgba(34, 211, 238, 0.05)' }] },
+                data: { labels: data.map((_, i) => i === 0 ? 'Start' : `#${i}`), datasets: [{ data: data, borderColor: '#22d3ee', borderWidth: 3, pointRadius: 6, pointHoverRadius: 10, pointBackgroundColor: '#22d3ee', tension: 0.3, fill: true, backgroundColor: 'rgba(34, 211, 238, 0.05)' }] },
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     plugins: { 
@@ -323,11 +323,13 @@
                 document.getElementById('calcTitle').innerText = label;
                 buffer = activeIn.value || ""; display.innerText = buffer || "0";
                 overlay.classList.replace('hidden', 'flex');
+                // 強制視窗獲取焦點，確保鍵盤事件能被監聽到
+                window.focus();
             };
 
-            document.getElementById('entryPrice').onclick = () => openCalc('entryPrice', 'Entry Price');
-            document.getElementById('stopLoss').onclick = () => openCalc('stopLoss', 'Stop Loss');
-            document.getElementById('exitPrice').onclick = () => openCalc('exitPrice', 'Exit Price');
+            document.getElementById('entryPrice').onclick = () => openCalc('entryPrice', 'Entry Price 入場價位');
+            document.getElementById('stopLoss').onclick = () => openCalc('stopLoss', 'Stop Loss 停損價位');
+            document.getElementById('exitPrice').onclick = () => openCalc('exitPrice', 'Exit Price 出場價位');
 
             window.calcIn = (k) => {
                 if (k==='C') buffer = ""; 
@@ -336,7 +338,7 @@
                 else { if (k==='.' && buffer.includes('.')) return; buffer += k; }
                 display.innerText = buffer || "0";
                 
-                // 視覺回饋：如果按鍵存在則觸發動畫
+                // 視覺回饋
                 const btnId = k === '.' ? 'key-dot' : k === 'B' ? 'key-back' : k === 'C' ? 'key-clear' : k === 'D' ? 'key-enter' : `key-${k}`;
                 const btn = document.getElementById(btnId);
                 if (btn) {
@@ -347,16 +349,18 @@
 
             // 新增鍵盤輸入支援
             window.addEventListener('keydown', (e) => {
-                if (overlay.classList.contains('flex')) {
+                // 檢查計算機是否開啟 (不論是 flex 還是其他顯示狀態，只要不是 hidden)
+                if (!overlay.classList.contains('hidden')) {
                     if (/[0-9]/.test(e.key)) {
                         window.calcIn(e.key);
                     } else if (e.key === '.') {
                         window.calcIn('.');
                     } else if (e.key === 'Backspace') {
+                        e.preventDefault();
                         window.calcIn('B');
                     } else if (e.key === 'Enter') {
+                        e.preventDefault();
                         window.calcIn('D');
-                        e.preventDefault(); // 防止提交表單
                     } else if (e.key === 'Escape' || e.key.toLowerCase() === 'c') {
                         window.calcIn('C');
                     }
