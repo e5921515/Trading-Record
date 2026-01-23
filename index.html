@@ -77,8 +77,9 @@
             </form>
         </section>
 
-        <!-- Stats -->
+        <!-- Stats 儀表板區域 -->
         <section class="grid grid-cols-2 gap-3 animate-fade" style="animation-delay: 0.1s">
+            <!-- 總盈虧與勝率 -->
             <div class="glass-card rounded-2xl p-5 col-span-2 border-l-4 border-l-cyan-500 flex justify-between items-end">
                 <div>
                     <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Net Profit 總盈虧</p>
@@ -89,8 +90,22 @@
                     <p id="stat-wr" class="text-xl font-bold text-white mono">0%</p>
                 </div>
             </div>
-            <div class="glass-card rounded-2xl p-4"><p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Max Wins 連勝</p><p id="stat-max-wins" class="text-xl font-black text-green-400 mono">0</p></div>
-            <div class="glass-card rounded-2xl p-4"><p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Max Losses 連敗</p><p id="stat-max-losses" class="text-xl font-black text-rose-500 mono">0</p></div>
+            
+            <!-- 總風報比區塊 -->
+            <div class="glass-card rounded-2xl p-5 col-span-2 border-l-4 border-l-orange-500">
+                <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Total RR 總風報比</p>
+                <p id="stat-total-rr" class="text-3xl font-black mono tracking-tighter text-orange-400">0.00</p>
+            </div>
+
+            <!-- 連勝連敗 -->
+            <div class="glass-card rounded-2xl p-4 border-b border-green-500/20">
+                <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Max Wins 最大連勝</p>
+                <p id="stat-max-wins" class="text-xl font-black text-green-400 mono">0</p>
+            </div>
+            <div class="glass-card rounded-2xl p-4 border-b border-rose-500/20">
+                <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Max Losses 最大連敗</p>
+                <p id="stat-max-losses" class="text-xl font-black text-rose-500 mono">0</p>
+            </div>
         </section>
 
         <!-- Chart -->
@@ -189,12 +204,18 @@
 
         function render() {
             const sorted = [...state.trades].sort((a, b) => new Date(a.entryTime) - new Date(b.entryTime));
-            let net = 0, wins = 0, losses = 0, eq = [0], curW = 0, curL = 0, maxW = 0, maxL = 0;
+            let net = 0, wins = 0, losses = 0, eq = [0], curW = 0, curL = 0, maxW = 0, maxL = 0, totalRR = 0;
 
             sorted.forEach(t => {
                 const pl = t.type === 'long' ? (t.exitPrice - t.entryPrice) : (t.entryPrice - t.exitPrice);
+                const risk = Math.abs(t.entryPrice - t.stopLoss) || 0.0001;
+                
                 net += pl;
+                totalRR += (pl / risk);
+
                 if (pl > 0) { wins++; curW++; curL = 0; } else if (pl < 0) { losses++; curL++; curW = 0; }
+                else { curW = 0; curL = 0; }
+                
                 maxW = Math.max(maxW, curW); maxL = Math.max(maxL, curL);
                 eq.push(net);
             });
@@ -202,6 +223,7 @@
             document.getElementById('stat-net').innerText = net.toFixed(2);
             document.getElementById('stat-net').className = `text-3xl font-black mono ${net >= 0 ? 'text-green-400' : 'text-rose-500'}`;
             document.getElementById('stat-wr').innerText = (state.trades.length ? (wins/state.trades.length*100).toFixed(1) : 0) + '%';
+            document.getElementById('stat-total-rr').innerText = totalRR.toFixed(2);
             document.getElementById('stat-max-wins').innerText = maxW;
             document.getElementById('stat-max-losses').innerText = maxL;
 
@@ -213,19 +235,27 @@
 
             displayList.slice((state.page-1)*state.limit, state.page*state.limit).forEach(t => {
                 const pl = t.type === 'long' ? (t.exitPrice - t.entryPrice) : (t.entryPrice - t.exitPrice);
+                const risk = Math.abs(t.entryPrice - t.stopLoss) || 0.0001;
+                const singleRR = (pl / risk);
+                
                 const card = document.createElement('div');
                 card.className = 'glass-card rounded-2xl p-4 flex justify-between items-center active:scale-95 transition-all';
                 card.innerHTML = `
                     <div class="flex gap-4 items-center flex-1 cursor-pointer" onclick="window.edit('${t.id}')">
-                        <div class="w-1 h-8 rounded-full ${t.type === 'long' ? 'bg-green-500' : 'bg-rose-500'}"></div>
+                        <div class="w-1 h-10 rounded-full ${t.type === 'long' ? 'bg-green-500' : 'bg-rose-500'}"></div>
                         <div>
-                            <div class="text-[9px] font-black ${t.type === 'long' ? 'text-green-500' : 'text-rose-500'} uppercase">${t.type}</div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[9px] font-black ${t.type === 'long' ? 'text-green-500' : 'text-rose-500'} uppercase">${t.type}</span>
+                                <span class="text-[9px] text-slate-600 font-bold">${new Date(t.entryTime).toLocaleDateString()}</span>
+                                <!-- 單筆 RR 顯示 -->
+                                <span class="text-[9px] bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded-full font-bold mono">RR ${singleRR.toFixed(2)}</span>
+                            </div>
                             <div class="text-xs font-bold text-slate-300 mono">${t.entryPrice} → ${t.exitPrice}</div>
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
                         <div class="text-right font-black mono ${pl >= 0 ? 'text-green-400' : 'text-rose-500'}">${pl >= 0 ? '+' : ''}${pl.toFixed(2)}</div>
-                        <button onclick="window.delTrade(event, '${t.id}')" class="p-2.5 bg-rose-500/10 text-rose-500 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        <button onclick="window.delTrade(event, '${t.id}')" class="p-2.5 bg-rose-500/10 text-rose-500 rounded-lg hover:bg-rose-500 hover:text-white transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </div>`;
                 list.appendChild(card);
             });
@@ -251,7 +281,7 @@
                             font: { weight: 'bold', size: 11 }, formatter: (v) => v.toFixed(2), align: 'top', offset: 10
                         }
                     },
-                    scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#475569', font: { size: 10 } } } }
+                    scales: { x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 10 } } }, y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#475569', font: { size: 10 } } } }
                 }
             });
         }
@@ -323,7 +353,6 @@
                 document.getElementById('calcTitle').innerText = label;
                 buffer = activeIn.value || ""; display.innerText = buffer || "0";
                 overlay.classList.replace('hidden', 'flex');
-                // 強制視窗獲取焦點，確保鍵盤事件能被監聽到
                 window.focus();
             };
 
@@ -338,7 +367,6 @@
                 else { if (k==='.' && buffer.includes('.')) return; buffer += k; }
                 display.innerText = buffer || "0";
                 
-                // 視覺回饋
                 const btnId = k === '.' ? 'key-dot' : k === 'B' ? 'key-back' : k === 'C' ? 'key-clear' : k === 'D' ? 'key-enter' : `key-${k}`;
                 const btn = document.getElementById(btnId);
                 if (btn) {
@@ -347,9 +375,7 @@
                 }
             };
 
-            // 新增鍵盤輸入支援
             window.addEventListener('keydown', (e) => {
-                // 檢查計算機是否開啟 (不論是 flex 還是其他顯示狀態，只要不是 hidden)
                 if (!overlay.classList.contains('hidden')) {
                     if (/[0-9]/.test(e.key)) {
                         window.calcIn(e.key);
