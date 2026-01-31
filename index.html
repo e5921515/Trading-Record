@@ -79,7 +79,6 @@
 
         <!-- Stats 儀表板區域 -->
         <section class="grid grid-cols-2 gap-3 animate-fade" style="animation-delay: 0.1s">
-            <!-- 總盈虧與勝率 -->
             <div class="glass-card rounded-2xl p-5 col-span-2 border-l-4 border-l-cyan-500 flex justify-between items-end">
                 <div>
                     <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Net Profit 總盈虧</p>
@@ -91,13 +90,11 @@
                 </div>
             </div>
             
-            <!-- 總風報比區塊 -->
             <div class="glass-card rounded-2xl p-5 col-span-2 border-l-4 border-l-orange-500">
                 <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Total RR 總風報比</p>
                 <p id="stat-total-rr" class="text-3xl font-black mono tracking-tighter text-orange-400">0.00</p>
             </div>
 
-            <!-- 連勝連敗 -->
             <div class="glass-card rounded-2xl p-4 border-b border-green-500/20">
                 <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Max Wins 最大連勝</p>
                 <p id="stat-max-wins" class="text-xl font-black text-green-400 mono">0</p>
@@ -118,7 +115,10 @@
         <section class="space-y-4 animate-fade" style="animation-delay: 0.3s">
             <div class="flex justify-between items-center px-1">
                 <h3 class="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">History</h3>
-                <button id="btn-clear-all" onclick="window.clearAll()" class="px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-500 text-[9px] font-black uppercase tracking-widest border border-rose-500/20">Clear All 全部刪除</button>
+                <div class="flex gap-2">
+                    <button id="btn-export" onclick="window.exportCSV()" class="px-3 py-1.5 rounded-lg bg-green-500/10 text-green-500 text-[9px] font-black uppercase tracking-widest border border-green-500/20 hover:bg-green-500 hover:text-white transition-all">Export 匯出 CSV</button>
+                    <button id="btn-clear-all" onclick="window.clearAll()" class="px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-500 text-[9px] font-black uppercase tracking-widest border border-rose-500/20">Clear All 全部刪除</button>
+                </div>
             </div>
             <div id="history-list" class="space-y-3"></div>
             <div id="pagination" class="flex justify-between items-center px-2 hidden">
@@ -247,7 +247,6 @@
                             <div class="flex items-center gap-2">
                                 <span class="text-[9px] font-black ${t.type === 'long' ? 'text-green-500' : 'text-rose-500'} uppercase">${t.type}</span>
                                 <span class="text-[9px] text-slate-600 font-bold">${new Date(t.entryTime).toLocaleDateString()}</span>
-                                <!-- 單筆 RR 顯示 -->
                                 <span class="text-[9px] bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded-full font-bold mono">RR ${singleRR.toFixed(2)}</span>
                             </div>
                             <div class="text-xs font-bold text-slate-300 mono">${t.entryPrice} → ${t.exitPrice}</div>
@@ -304,6 +303,36 @@
             }
             for (const t of state.trades) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', PATH_COLL, t.id));
             state.clearConfirmed = false;
+        };
+
+        // 匯出 CSV 邏輯
+        window.exportCSV = () => {
+            if (state.trades.length === 0) return;
+            
+            // 標題欄
+            let csvContent = "交易日期,交易類型,入場價,停損價,出場價,損益,風報比(RR)\n";
+            
+            // 排序資料並加入內容
+            const sorted = [...state.trades].sort((a, b) => new Date(a.entryTime) - new Date(b.entryTime));
+            sorted.forEach(t => {
+                const pl = t.type === 'long' ? (t.exitPrice - t.entryPrice) : (t.entryPrice - t.exitPrice);
+                const risk = Math.abs(t.entryPrice - t.stopLoss) || 0.0001;
+                const rr = (pl / risk).toFixed(2);
+                const date = new Date(t.entryTime).toLocaleString();
+                const type = t.type === 'long' ? "做多" : "做空";
+                
+                csvContent += `${date},${type},${t.entryPrice},${t.stopLoss},${t.exitPrice},${pl.toFixed(2)},${rr}\n`;
+            });
+
+            // 使用 UTF-8 BOM 確保 Google Sheets / Excel 不亂碼
+            const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `trading_records_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         };
 
         window.edit = (id) => {
