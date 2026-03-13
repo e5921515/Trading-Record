@@ -3,7 +3,7 @@
   1. Save this code as 'index.html' on your computer.
   2. Go to 'tiiny.host' or GitHub to deploy.
   3. IMPORTANT: If using Firebase, add your domain to "Authorized Domains" in Firebase Console.
-  UPDATE: Removed dots from the chart for a cleaner line-only look.
+  UPDATE: Added a "Notes" field for trade journals and updated CSV export.
 -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -73,6 +73,11 @@
                 <div class="space-y-1.5">
                     <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Date & Time 交易時間</label>
                     <input type="datetime-local" id="entryTime" class="input-glow w-full p-4 rounded-xl text-sm outline-none">
+                </div>
+                <!-- 新增備註欄位 -->
+                <div class="space-y-1.5">
+                    <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Notes 備註</label>
+                    <textarea id="note" class="input-glow w-full p-4 rounded-xl text-sm outline-none resize-none h-20" placeholder="記錄你的心路歷程..."></textarea>
                 </div>
                 <button type="submit" id="submitBtn" class="w-full py-5 bg-white text-black font-black rounded-xl active:scale-95 transition-all text-sm uppercase tracking-widest">Save Record 儲存紀錄</button>
             </form>
@@ -238,19 +243,22 @@
                 const pl = t.type === 'long' ? (t.exitPrice - t.entryPrice) : (t.entryPrice - t.exitPrice);
                 const risk = Math.abs(t.entryPrice - t.stopLoss) || 0.0001;
                 const singleRR = (pl / risk);
+                const hasNote = t.note && t.note.trim() !== "";
                 
                 const card = document.createElement('div');
                 card.className = 'glass-card rounded-2xl p-4 flex justify-between items-center active:scale-95 transition-all';
                 card.innerHTML = `
                     <div class="flex gap-4 items-center flex-1 cursor-pointer" onclick="window.edit('${t.id}')">
-                        <div class="w-1 h-10 rounded-full ${t.type === 'long' ? 'bg-green-500' : 'bg-rose-500'}"></div>
-                        <div>
+                        <div class="w-1 h-12 rounded-full ${t.type === 'long' ? 'bg-green-500' : 'bg-rose-500'}"></div>
+                        <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2">
                                 <span class="text-[9px] font-black ${t.type === 'long' ? 'text-green-500' : 'text-rose-500'} uppercase">${t.type}</span>
                                 <span class="text-[9px] text-slate-600 font-bold">${new Date(t.entryTime).toLocaleDateString()}</span>
                                 <span class="text-[9px] bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded-full font-bold mono">RR ${singleRR.toFixed(2)}</span>
                             </div>
                             <div class="text-xs font-bold text-slate-300 mono">${t.entryPrice} → ${t.exitPrice}</div>
+                            <!-- 備註顯示 -->
+                            ${hasNote ? `<div class="text-[10px] text-slate-500 mt-1 italic line-clamp-1"># ${t.note}</div>` : ''}
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
@@ -274,9 +282,9 @@
                     data: data, 
                     borderColor: '#22d3ee', 
                     borderWidth: 3, 
-                    pointRadius: 0, // 初始不顯示圓點
-                    pointHitRadius: 15, // 增加碰撞區域，方便觸發 Hover
-                    pointHoverRadius: 8, // Hover 時才顯示圓點
+                    pointRadius: 0, 
+                    pointHitRadius: 15, 
+                    pointHoverRadius: 8, 
                     pointHoverBackgroundColor: '#22d3ee',
                     pointHoverBorderWidth: 2,
                     pointHoverBorderColor: '#fff',
@@ -288,12 +296,12 @@
                     responsive: true, maintainAspectRatio: false,
                     interaction: {
                         mode: 'index',
-                        intersect: false, // 讓滑鼠在垂直線上就能觸發，不必精準對準點
+                        intersect: false, 
                     },
                     plugins: { 
                         legend: false,
                         datalabels: {
-                            display: (ctx) => ctx.active, // 僅在觸發互動時顯示數字
+                            display: (ctx) => ctx.active, 
                             backgroundColor: '#22d3ee', color: '#000', borderRadius: 4, padding: 6,
                             font: { weight: 'bold', size: 11 }, formatter: (v) => v.toFixed(2), align: 'top', offset: 10
                         }
@@ -328,7 +336,7 @@
 
         window.exportCSV = () => {
             if (state.trades.length === 0) return;
-            let csvContent = "交易日期,交易類型,入場價,停損價,出場價,損益,風報比(RR)\n";
+            let csvContent = "交易日期,交易類型,入場價,停損價,出場價,損益,風報比(RR),備註\n";
             const sorted = [...state.trades].sort((a, b) => new Date(a.entryTime) - new Date(b.entryTime));
             sorted.forEach(t => {
                 const pl = t.type === 'long' ? (t.exitPrice - t.entryPrice) : (t.entryPrice - t.exitPrice);
@@ -336,7 +344,8 @@
                 const rr = (pl / risk).toFixed(2);
                 const date = new Date(t.entryTime).toLocaleString();
                 const type = t.type === 'long' ? "做多" : "做空";
-                csvContent += `${date},${type},${t.entryPrice},${t.stopLoss},${t.exitPrice},${pl.toFixed(2)},${rr}\n`;
+                const note = (t.note || "").replace(/,/g, "，"); // 避免 CSV 逗點衝突
+                csvContent += `${date},${type},${t.entryPrice},${t.stopLoss},${t.exitPrice},${pl.toFixed(2)},${rr},${note}\n`;
             });
             const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
@@ -355,6 +364,7 @@
             document.getElementById('stopLoss').value = t.stopLoss;
             document.getElementById('exitPrice').value = t.exitPrice;
             document.getElementById('entryTime').value = t.entryTime;
+            document.getElementById('note').value = t.note || "";
             window.updateType(t.type);
             document.getElementById('submitBtn').innerText = 'Update Record 更新紀錄';
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -373,6 +383,7 @@
                     stopLoss: parseFloat(document.getElementById('stopLoss').value) || 0,
                     exitPrice: parseFloat(document.getElementById('exitPrice').value),
                     entryTime: document.getElementById('entryTime').value,
+                    note: document.getElementById('note').value,
                     type: state.type, timestamp: Date.now()
                 };
                 if (isNaN(d.entryPrice) || isNaN(d.exitPrice)) return;
@@ -408,21 +419,34 @@
                 else if (k==='D') { activeIn.value = buffer; overlay.classList.replace('flex', 'hidden'); }
                 else { if (k==='.' && buffer.includes('.')) return; buffer += k; }
                 display.innerText = buffer || "0";
+                
                 const btnId = k === '.' ? 'key-dot' : k === 'B' ? 'key-back' : k === 'C' ? 'key-clear' : k === 'D' ? 'key-enter' : `key-${k}`;
                 const btn = document.getElementById(btnId);
-                if (btn) { btn.classList.add('active'); setTimeout(() => btn.classList.remove('active'), 100); }
+                if (btn) {
+                    btn.classList.add('active');
+                    setTimeout(() => btn.classList.remove('active'), 100);
+                }
             };
 
             window.addEventListener('keydown', (e) => {
                 if (!overlay.classList.contains('hidden')) {
-                    if (/[0-9]/.test(e.key)) window.calcIn(e.key);
-                    else if (e.key === '.') window.calcIn('.');
-                    else if (e.key === 'Backspace') { e.preventDefault(); window.calcIn('B'); }
-                    else if (e.key === 'Enter') { e.preventDefault(); window.calcIn('D'); }
-                    else if (e.key === 'Escape' || e.key.toLowerCase() === 'c') window.calcIn('C');
+                    if (/[0-9]/.test(e.key)) {
+                        window.calcIn(e.key);
+                    } else if (e.key === '.') {
+                        window.calcIn('.');
+                    } else if (e.key === 'Backspace') {
+                        e.preventDefault();
+                        window.calcIn('B');
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        window.calcIn('D');
+                    } else if (e.key === 'Escape' || e.key.toLowerCase() === 'c') {
+                        window.calcIn('C');
+                    }
                 }
             });
         }
+
         init();
     </script>
 </body>
